@@ -410,7 +410,8 @@ EVAL_DATASET_STEPS: list[ExecutorStep] = [
     truthful_qa_convert_dolma,
     bbh_convert_dolma,
     mmlu_convert_dolma,
-    humaneval_convert_dolma,
+    # NOTE: I don't have access to marin GCS bucket
+    # humaneval_convert_dolma,
     instruction_following_convert_dolma,
     gpqa_convert_dolma,
     musr_convert_dolma,
