@@ -34,6 +34,29 @@ fineweb_edu = ExecutorStep(
     override_output_path="raw/fineweb-edu-c2beb4",
 ).cd("data")
 
+fineweb_edu_sample = ExecutorStep(
+    name="raw/fineweb-edu-sample",
+    fn=download_hf,
+    config=DownloadConfig(
+        hf_dataset_id="HuggingFaceFW/fineweb-edu",
+        revision="3c452cb",
+        # TODO: include more than one shard?
+        hf_urls_glob=["sample/10BT/000_00000.parquet", "sample/10BT/001_00000.parquet"],
+    ),
+    override_output_path="raw/fineweb-edu-sample-69e8c9",
+).cd("sample")
+
+fineweb_edu_sample_single = ExecutorStep(
+    name="raw/fineweb-edu-sample-single",
+    fn=download_hf,
+    config=DownloadConfig(
+        hf_dataset_id="HuggingFaceFW/fineweb-edu",
+        revision="3c452cb",
+        hf_urls_glob=["sample/10BT/000_00000.parquet"],
+    ),
+    override_output_path="raw/fineweb-edu-sample-single-69e8c9",
+).cd("sample")
+
 slimpajama = ExecutorStep(
     name="raw/SlimPajama-627B",
     fn=download_hf,

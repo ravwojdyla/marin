@@ -29,7 +29,7 @@ import ray
 from marin.execution.executor import ExecutorStep, executor_main, this_output_path
 from marin.processing.classification.dedupe import DedupeConfig, DedupMode, NGramConfig, dedupe
 
-from experiments.pretraining_datasets import slimpajama_6b
+from experiments.pretraining_datasets import fineweb_edu_sample_single
 from experiments.train_test_overlap.eval_datasets_overlap import EVAL_DATASET_STEPS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 # N-gram configuration for train-test overlap detection
 DEFAULT_NGRAM_CONFIG = NGramConfig(
-    ngram_length=[5, 10, 15],
+    ngram_length=5,
     overlap_threshold=1e-6,
     stride=0,
 )
@@ -54,13 +54,13 @@ def run_train_test_overlap(config: DedupeConfig) -> str:
 
 def build_proofpile_step() -> ExecutorStep:
     dedupe_config = DedupeConfig(
-        input_path=slimpajama_6b,
+        input_path=fineweb_edu_sample_single,
         output_path=this_output_path(),
         # decontaminate_source=EVAL_DATASET_STEPS,
         attribute_name="ngram_overlap",
         false_positive_rate=1e-20,
         ngram=DEFAULT_NGRAM_CONFIG,
-        processes=1024,
+        processes=7,
         mode=DedupMode.DEDUPLICATE,
         text_field="text",
     )
