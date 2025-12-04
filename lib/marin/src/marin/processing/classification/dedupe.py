@@ -35,6 +35,8 @@ import typing
 
 from marin.execution.executor import THIS_OUTPUT_PATH
 
+from marin.processing.classification.deduplication.connected_components import connected_components
+from marin.processing.classification.deduplication.minhash_lsh import minhash_lsh
 from marin.utilities.time_logger import log_time
 import pyarrow as pa
 import pyarrow.json as pa_json
@@ -605,10 +607,30 @@ def _run_exact_doc_deduplication(config: DedupeConfig):
     cnts = _compute_dedup_stats(duplicate_key_shards)
     logger.info(f"Stats: {cnts.total=:,} documents, {cnts.unique=:,} unique, {cnts.unique_dups=:,} dups.")
 
+    doc_minhash_lsh = minhash_lsh(Dataset.from_list(input_files).flat_map(load_file))
+    converged, cc_files = connected_components(
+        doc_minhash_lsh, backend=backend, output_dir=f"{config.output_path}/metadata/cc"
+    )
+    # NOTE: it's probably fine if this doesn't converge, but for now we assert
+    assert converged, "Connected components did not converge!"
+    fuzzy_dup_shards = backend.execute(
+        Dataset.from_list(cc_files)
+        .flat_map(load_file)
+        .map(lambda r: {"id": r["node_id"]["record_id"], "fuzzy_duplicate": r["component_id"] != r["node_id"]})
+        .reshard(num_shards=42)
+        .write_parquet(f"{config.output_path}/metadata/fuzzy-dup-key-{{shard:05d}}-of-{{total:05d}}.parquet")
+    )
+
     def mark_exact_dups_documents(batches: Iterator[pa.RecordBatch]) -> Iterator[pa.RecordBatch]:
         """Mark exact duplicate documents using exact hash matching."""
-
         dup_map = _load_dupe_map_shard(duplicate_key_shards)
+
+        fuzzy_dup_map = {}
+        if not fuzzy_dup_shards:
+            logger.info("No fuzzy duplicate documents found.")
+        else:
+            for record in load_parquet(fuzzy_dup_shards[0]):
+                fuzzy_dup_map[record["id"]] = record["fuzzy_duplicate"]
 
         for batch in batches:
             prepared_batch = dupekit.transform(
@@ -620,16 +642,19 @@ def _run_exact_doc_deduplication(config: DedupeConfig):
                     ),
                 ],
             )
-            yield dupekit.mark_document_duplicates(prepared_batch, dup_map, config.attribute_name, hash_col="hash")
+            b = dupekit.mark_document_duplicates(prepared_batch, dup_map, config.attribute_name, hash_col="hash")
+            for r in b.to_pylist():
+                is_fuzzy_dup = fuzzy_dup_map.get(r["id"], False)
+                # TODO: accept fuzzy_duplicate as config option?
+                r["attributes"]["fuzzy_duplicate"] = is_fuzzy_dup
+                yield r
 
     base_path = _find_base_path(config.input_path, input_files)
     backend.execute(
         Dataset.from_list(input_files).flat_map(_load_batches)
         # NOTE/TODO: we can't reshard here to increase parallelism because afaiu we want to match
         # the shards of the input files for rebase_file_path to work correctly.
-        .map_shard(mark_exact_dups_documents)
-        .flat_map(lambda batch: batch.to_pylist())
-        .write_jsonl(
+        .map_shard(mark_exact_dups_documents).write_jsonl(
             output_pattern=lambda shard_idx, total: rebase_file_path(
                 base_path,
                 input_files[shard_idx],
