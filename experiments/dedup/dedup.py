@@ -24,7 +24,7 @@ import logging
 
 from marin.download.huggingface.download_hf import DownloadConfig, download_hf
 import ray
-from marin.execution.executor import ExecutorStep, InputName, executor_main
+from marin.execution.executor import ExecutorStep, InputName
 from marin.processing.classification.dedupe import DedupeConfig, DedupMode, NGramConfig, dedupe
 
 logger = logging.getLogger(__name__)
@@ -84,7 +84,8 @@ STEPS = [build_dedup_step(fineweb_edu_small_1), build_dedup_step(fineweb_edu_sma
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-    executor_main(
-        steps=STEPS,
-        description="Run dedupe",
-    )
+    print("look ma no hands")
+    # executor_main(
+    #     steps=STEPS,
+    #     description="Run dedupe",
+    # )
