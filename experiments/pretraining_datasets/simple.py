@@ -197,6 +197,17 @@ downloads = {
             override_output_path="raw/the_pile_openwebtext2",
         ).cd("1de27c6/huggingface.co/datasets/vietgpt/the_pile_openwebtext2/resolve/1de27c6")
     ),
+    "cccc": ExecutorStep(
+        name="raw/cccc",
+        fn=download_hf,
+        config=DownloadConfig(
+            hf_dataset_id="common-pile/cccc",
+            revision="72bd015",
+            gcs_output_path=this_output_path(),
+            wait_for_completion=True,
+        ),
+        override_output_path="raw/cccc",
+    ),
     # TODO: Earlier datasets were stored in gcs_output_path/<revision> instead of gcs_output_path.
     #   Migrate the dataset and cd can be removed.
     "starcoderdata": ExecutorStep(

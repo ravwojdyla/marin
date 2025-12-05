@@ -379,6 +379,21 @@ dolma3_mix = lm_mixture_data_config(
     num_validation_sequences={"dolma3_mix-150B-1025": 1024},
 )
 
+cccc_tokenized = dataclasses.replace(
+    default_tokenize(
+        name="cccc",
+        dataset=downloads["cccc"],
+        tokenizer=llama3_tokenizer,
+    ).with_output_path("tokenized/cccc/"),
+)
+
+cc_mix = lm_mixture_data_config(
+    components={"cccc": cccc_tokenized},
+    weights={"cccc": 1.0},
+    num_validation_sequences={"cccc": 1024},
+)
+
+
 MARIN_SCALING_SUITES = {
     "nemotron": generate_isoflop_sweep(nemotron_mix, experiment_name="nemo-wider-depth-adapt"),
     "common_pile": generate_isoflop_sweep(comma_main_mixture(permutation_type="linear"), experiment_name="comma-mix"),
@@ -387,8 +402,9 @@ MARIN_SCALING_SUITES = {
     ),
     "dclm-default": generate_isoflop_sweep(dclm_mix, experiment_name="dclm-default"),
     "dolma3_mix_150b": generate_isoflop_sweep(dolma3_mix, experiment_name="dolma3-mix-150b-1025"),
+    "cccc": generate_isoflop_sweep(cc_mix, experiment_name="cccc", budgets=[1e18, 3e18]),
 }
 
 if __name__ == "__main__":
-    steps, _ = MARIN_SCALING_SUITES["dolma3_mix_150b"]
+    steps, _ = MARIN_SCALING_SUITES["cccc"]
     executor_main(steps=steps)
